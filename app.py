@@ -14,7 +14,7 @@ app = FastAPI(title="ForgePilot Web API")
 # Enable CORS so your frontend (Vercel, React, HTML) can talk to this API
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"], # In production, restrict this to your Vercel URL
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
