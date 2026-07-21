@@ -1,4 +1,5 @@
 import os
+import sys
 import subprocess
 from pathlib import Path
 
@@ -18,11 +19,11 @@ def run_validation(target_dir: Path):
     env = os.environ.copy()
     env["PYTHONPATH"] = str(target_dir.resolve()) + os.pathsep + env.get("PYTHONPATH", "")
 
+    # Run pytest using the current Python environment's executable
     result = subprocess.run(
-        "pytest",
+        [sys.executable, "-m", "pytest"],
         cwd=target_dir,
         env=env,
-        shell=True,
         capture_output=True,
         text=True,
     )
