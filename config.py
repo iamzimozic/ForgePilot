@@ -12,4 +12,5 @@ WORKSPACE_DIR.mkdir(exist_ok=True)
 CACHE_DIR.mkdir(exist_ok=True)
 
 GEMINI_MODEL = "gemini-2.5-flash"
+GROQ_MODEL = "llama-3.3-70b-versatile"
 MAX_LLM_CALLS = 2

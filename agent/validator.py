@@ -1,9 +1,12 @@
+import os
 import subprocess
-from config import WORKSPACE_DIR
+from pathlib import Path
 
-
-def run_validation():
-    test_files = sorted(WORKSPACE_DIR.glob("test_*.py"))
+def run_validation(target_dir: Path):
+    """
+    Runs pytest inside a specific, isolated workspace directory.
+    """
+    test_files = sorted(target_dir.glob("test_*.py"))
     if not test_files:
         return False, (
             "No test_*.py files found in workspace. "
@@ -11,9 +14,14 @@ def run_validation():
             "(e.g. test_web.py) that validates the build."
         )
 
+    # Ensure Python prioritizes imports from target_dir over root directory
+    env = os.environ.copy()
+    env["PYTHONPATH"] = str(target_dir.resolve()) + os.pathsep + env.get("PYTHONPATH", "")
+
     result = subprocess.run(
         "pytest",
-        cwd=WORKSPACE_DIR,
+        cwd=target_dir,
+        env=env,
         shell=True,
         capture_output=True,
         text=True,

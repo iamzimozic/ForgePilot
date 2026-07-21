@@ -1,5 +1,5 @@
 from langchain_google_genai import ChatGoogleGenerativeAI
-from config import GEMINI_MODEL
+from config import GEMINI_MODEL, GROQ_MODEL
 
 def get_llm():
     return ChatGoogleGenerativeAI(

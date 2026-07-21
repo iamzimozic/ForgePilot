@@ -2,3 +2,5 @@ langchain
 langchain-google-genai
 python-dotenv
 rich
+fastapi
+uvicorn
