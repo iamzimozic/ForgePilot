@@ -1,8 +1,17 @@
 # ForgePilot
 
-A command-line agent that turns natural-language goals into small, working **Python projects**. It uses **Google Gemini** (via LangChain) to generate code, writes files into a local `workspace/`, validates them with **pytest**, and can **self-heal** when tests fail. Successful outputs are **cached** so repeat requests skip LLM calls entirely.
+> A production-ready AI agent system that transforms natural-language goals into fully verified, test-backed Python projects—running entirely in isolated temporary sandboxes with automated self-healing.
 
-The stack is **goal-driven** (CLI tools, APIs, tiny libraries, etc.)—not locked to CRUD or FastAPI.
+[![Live Web App](https://img.shields.io/badge/Live_Demo-Vercel-000000?style=for-the-badge&logo=vercel)](https://forgepilot.vercel.app)
+[![API Status](https://img.shields.io/badge/Backend-Render-46E3B7?style=for-the-badge&logo=render)](https://forgepilot-my6c.onrender.com)
+[![Python Version](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=for-the-badge&logo=python)](https://python.org)
+
+---
+
+## 🌐 Live Demos
+
+* **Web UI (Vercel):** [https://forgepilot.vercel.app](https://forgepilot.vercel.app)
+* **REST API (Render):** `https://forgepilot-my6c.onrender.com/api/generate`
 
 ---
 
@@ -383,6 +392,12 @@ If a valid cache entry exists for your normalized command, a repeat run uses zer
 ```bash
 python cli.py "create a fastapi crud app with sqlite"
 ```
+
+---
+
+## 🏗️ Web & Engine Architecture
+
+Unlike traditional LLM wrappers that output unverified code snippets, **ForgePilot** executes and validates generated applications in real time inside isolated temporary execution environments before serving results to the user.
 
 ### Adjust behavior
 
