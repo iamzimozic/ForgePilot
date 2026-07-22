@@ -1,70 +1,385 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ForgePilot - AI Code Generator</title>
+    <title>ForgePilot — AI Code Generator & Pytest Sandbox</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca' },
+                        darkbg: '#090d16',
+                        cardbg: '#111827',
+                        codebg: '#0d1117'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Highlight.js for Code Highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
+
+    <!-- JSZip for Zip Downloads -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
     <style>
-        body { font-family: system-ui, sans-serif; max-width: 800px; margin: 2rem auto; padding: 0 1rem; }
-        textarea { width: 100%; height: 100px; margin-bottom: 1rem; padding: 0.5rem; }
-        button { padding: 0.5rem 1rem; background: #0070f3; color: white; border: none; cursor: pointer; }
-        pre { background: #f4f4f4; padding: 1rem; overflow-x: auto; border-radius: 5px; }
-        .file-block { margin-top: 2rem; border: 1px solid #ddd; padding: 1rem; }
+        /* Custom Scrollbars */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #0d1117; }
+        ::-webkit-scrollbar-thumb { background: #1f2937; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #374151; }
     </style>
 </head>
-<body>
-    <h1>ForgePilot AI</h1>
-    <p>Enter a goal to generate a verified Python project.</p>
-    
-    <textarea id="goalInput" placeholder="e.g., Build a CLI temperature converter"></textarea>
-    <button onclick="generateCode()" id="genBtn">Generate Code</button>
-    
-    <p id="status"></p>
-    <div id="output"></div>
+<body class="bg-darkbg text-gray-100 min-h-screen flex flex-col font-sans antialiased selection:bg-indigo-500 selection:text-white">
 
+    <!-- Top Navigation Bar -->
+    <header class="border-b border-gray-800 bg-cardbg/80 backdrop-blur-md sticky top-0 z-50 px-6 py-4">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="p-2 bg-gradient-to-tr from-indigo-600 to-violet-500 rounded-xl shadow-lg shadow-indigo-500/20">
+                    <i data-lucide="terminal" class="w-6 h-6 text-white"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight bg-gradient-to-r from-white via-gray-200 to-indigo-300 bg-clip-text text-transparent">
+                        ForgePilot <span class="text-xs px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">AI</span>
+                    </h1>
+                    <p class="text-xs text-gray-400">Autonomous Python Code Generator & Pytest Sandbox</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-4">
+                <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Render API Live
+                </span>
+                <a href="https://github.com/iamzimozic/ForgePilot" target="_blank" class="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 transition-colors">
+                    <i data-lucide="github" class="w-5 h-5"></i>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Workspace Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- Left Column: Prompt Input & Controls -->
+        <section class="lg:col-span-5 flex flex-col gap-5">
+            <div class="bg-cardbg border border-gray-800 rounded-2xl p-5 shadow-xl relative overflow-hidden">
+                <div class="absolute -right-10 -top-10 w-40 h-40 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+                
+                <label for="goalInput" class="block text-sm font-semibold text-gray-200 mb-2 flex items-center justify-between">
+                    <span>Describe Your Goal</span>
+                    <span class="text-xs text-gray-500">Auto-validates with Pytest</span>
+                </label>
+
+                <textarea id="goalInput" rows="5" 
+                    class="w-full bg-codebg border border-gray-700/80 rounded-xl p-4 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all resize-none"
+                    placeholder="e.g. Build a simple Python CLI script using argparse that converts temperature. Do not build a web app."></textarea>
+
+                <!-- Prompt Presets / Chips -->
+                <div class="mt-3">
+                    <p class="text-xs text-gray-400 mb-2">Try an example prompt:</p>
+                    <div class="flex flex-wrap gap-2">
+                        <button onclick="setPrompt('Build a CLI that converts temperature between C and F with argparse.')" 
+                            class="text-xs px-2.5 py-1 rounded-lg bg-gray-800/80 hover:bg-indigo-900/40 hover:text-indigo-300 border border-gray-700/50 text-gray-300 transition-all">
+                            🌡️ Temp Converter CLI
+                        </button>
+                        <button onclick="setPrompt('Create a slugify function that converts strings into URL-safe slugs with pytest.')" 
+                            class="text-xs px-2.5 py-1 rounded-lg bg-gray-800/80 hover:bg-indigo-900/40 hover:text-indigo-300 border border-gray-700/50 text-gray-300 transition-all">
+                            🔗 String Slugifier
+                        </button>
+                        <button onclick="setPrompt('Build a simple JSON file parser that extracts specific keys and validates structure.')" 
+                            class="text-xs px-2.5 py-1 rounded-lg bg-gray-800/80 hover:bg-indigo-900/40 hover:text-indigo-300 border border-gray-700/50 text-gray-300 transition-all">
+                            📊 JSON Data Parser
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <button id="genBtn" onclick="generateCode()" 
+                    class="mt-5 w-full py-3.5 px-4 rounded-xl font-semibold text-white bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 shadow-lg shadow-indigo-600/25 transition-all flex items-center justify-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed">
+                    <i data-lucide="sparkles" class="w-5 h-5 group-hover:scale-110 transition-transform"></i>
+                    <span>Generate & Validate Code</span>
+                </button>
+            </div>
+
+            <!-- Execution Status Timeline (Hidden by default) -->
+            <div id="statusCard" class="hidden bg-cardbg border border-gray-800 rounded-2xl p-5 shadow-xl transition-all">
+                <h3 class="text-sm font-semibold text-gray-300 mb-3 flex items-center gap-2">
+                    <i data-lucide="activity" class="w-4 h-4 text-indigo-400"></i> Execution Pipeline
+                </h3>
+                <div class="space-y-3 text-xs">
+                    <div id="step1" class="flex items-center gap-3 text-gray-500">
+                        <div class="w-2 h-2 rounded-full bg-gray-600"></div>
+                        <span>Initializing temporary isolated sandbox...</span>
+                    </div>
+                    <div id="step2" class="flex items-center gap-3 text-gray-500">
+                        <div class="w-2 h-2 rounded-full bg-gray-600"></div>
+                        <span>Prompting Gemini 2.5 Flash for project files...</span>
+                    </div>
+                    <div id="step3" class="flex items-center gap-3 text-gray-500">
+                        <div class="w-2 h-2 rounded-full bg-gray-600"></div>
+                        <span>Executing Pytest in isolated OS folder...</span>
+                    </div>
+                    <div id="step4" class="flex items-center gap-3 text-gray-500">
+                        <div class="w-2 h-2 rounded-full bg-gray-600"></div>
+                        <span>Verifying build results & self-healing if needed...</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Right Column: Code Viewer & Tab Explorer -->
+        <section class="lg:col-span-7 flex flex-col">
+            <div class="bg-cardbg border border-gray-800 rounded-2xl flex flex-col h-[600px] shadow-2xl overflow-hidden">
+                
+                <!-- Code Header / File Tabs Bar -->
+                <div class="border-b border-gray-800 bg-gray-900/60 px-4 pt-3 flex items-center justify-between gap-4 overflow-x-auto" id="tabsHeader">
+                    <div class="flex items-center gap-2 overflow-x-auto pb-2" id="fileTabs">
+                        <span class="text-xs text-gray-500 italic px-2">No files generated yet</span>
+                    </div>
+
+                    <!-- Toolbar Actions -->
+                    <div class="flex items-center gap-2 pb-2 shrink-0">
+                        <button id="copyBtn" onclick="copyCurrentFile()" disabled 
+                            class="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 disabled:opacity-40 text-xs flex items-center gap-1.5 transition-colors">
+                            <i data-lucide="copy" class="w-4 h-4"></i> <span class="hidden sm:inline">Copy</span>
+                        </button>
+                        <button id="downloadZipBtn" onclick="downloadAsZip()" disabled 
+                            class="p-2 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 text-indigo-300 disabled:opacity-40 text-xs flex items-center gap-1.5 transition-colors">
+                            <i data-lucide="download" class="w-4 h-4"></i> <span class="hidden sm:inline">Download .ZIP</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Code Display Canvas -->
+                <div class="flex-1 bg-codebg p-4 overflow-auto relative">
+                    <!-- Status Banner inside Code Box -->
+                    <div id="codeBanner" class="hidden mb-3 p-3 rounded-lg text-xs font-medium flex items-center justify-between"></div>
+
+                    <!-- Pre/Code Block -->
+                    <pre class="m-0 text-sm font-mono leading-relaxed"><code id="codeViewer" class="language-python"># Select a generated file to preview code here...</code></pre>
+                    
+                    <!-- Empty State Graphic -->
+                    <div id="emptyState" class="absolute inset-0 flex flex-col items-center justify-center text-gray-600 pointer-events-none p-6 text-center">
+                        <i data-lucide="code-2" class="w-12 h-12 mb-3 stroke-[1.5]"></i>
+                        <p class="text-sm font-medium text-gray-400">Ready to build</p>
+                        <p class="text-xs text-gray-500 max-w-xs mt-1">Enter your goal on the left to generate verified Python code with automatic Pytest validation.</p>
+                    </div>
+                </div>
+
+                <!-- Code Footer / Meta Info -->
+                <div class="border-t border-gray-800 bg-gray-900/40 px-4 py-2 text-xs text-gray-500 flex items-center justify-between">
+                    <span id="fileMeta">0 Files</span>
+                    <span id="sandboxStatus" class="flex items-center gap-1.5">
+                        <span class="w-1.5 h-1.5 rounded-full bg-gray-500"></span> Sandbox Idle
+                    </span>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- JavaScript Logic -->
     <script>
+        // API Base Endpoint
+        const API_URL = "https://forgepilot-my6c.onrender.com/api/generate";
+
+        // State Management
+        let generatedFiles = {};
+        let activeFile = null;
+
+        // Initialize Lucide Icons
+        lucide.createIcons();
+
+        function setPrompt(text) {
+            document.getElementById('goalInput').value = text;
+        }
+
         async function generateCode() {
-            const goal = document.getElementById('goalInput').value;
-            const status = document.getElementById('status');
-            const output = document.getElementById('output');
-            const btn = document.getElementById('genBtn');
+            const goal = document.getElementById('goalInput').value.trim();
+            if (!goal) return alert("Please enter a project goal.");
 
-            if (!goal) return alert("Please enter a goal.");
+            const genBtn = document.getElementById('genBtn');
+            const statusCard = document.getElementById('statusCard');
+            const emptyState = document.getElementById('emptyState');
+            const codeBanner = document.getElementById('codeBanner');
+            const sandboxStatus = document.getElementById('sandboxStatus');
 
-            btn.disabled = true;
-            status.innerText = "Generating and validating code (this takes 10-20 seconds)...";
-            output.innerHTML = "";
+            // UI Reset & Loading State
+            genBtn.disabled = true;
+            statusCard.classList.remove('hidden');
+            emptyState.classList.add('hidden');
+            codeBanner.classList.add('hidden');
+            
+            resetSteps();
+            updateStep('step1', 'active', 'Initializing temporary isolated sandbox...');
 
             try {
-                // Pointing to your local FastAPI server
-                const response = await fetch("https://forgepilot-my6c.onrender.com/api/generate", {
+                setTimeout(() => updateStep('step1', 'done', 'Temporary workspace created'), 800);
+                setTimeout(() => updateStep('step2', 'active', 'Generating code with Gemini...'), 1200);
+
+                const response = await fetch(API_URL, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ goal: goal })
                 });
 
+                updateStep('step2', 'done', 'Code generated');
+                updateStep('step3', 'active', 'Executing Pytest in temp folder...');
+
                 const data = await response.json();
 
-                if (response.ok) {
-                    status.innerText = data.healed ? "Success (Self-Healed!)" : "Success! Code passed all tests on the first try.";
+                if (response.ok && data.status === "success") {
+                    updateStep('step3', 'done', 'Pytest suite executed');
+                    updateStep('step4', 'done', data.healed ? 'Self-heal successful!' : 'All tests passed on 1st try!');
+
+                    generatedFiles = data.files;
+                    renderFileTabs(data.files);
                     
-                    // Render the files
-                    for (const [filename, content] of Object.entries(data.files)) {
-                        output.innerHTML += `
-                            <div class="file-block">
-                                <h3>📄 ${filename}</h3>
-                                <pre><code>${content.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</code></pre>
-                            </div>
-                        `;
-                    }
+                    // Show Success Banner
+                    codeBanner.className = "mb-3 p-3 rounded-lg text-xs font-medium flex items-center justify-between " + 
+                        (data.healed ? "bg-amber-500/10 text-amber-400 border border-amber-500/20" : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20");
+                    codeBanner.innerHTML = data.healed ? 
+                        `<span>🩹 <b>Self-Healed:</b> Initial build failed tests, but the agent repaired it automatically.</span>` :
+                        `<span>✅ <b>Passed Validation:</b> Project built & verified with Pytest on first try!</span>`;
+                    codeBanner.classList.remove('hidden');
+
+                    sandboxStatus.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Sandbox Passed`;
+
+                    // Enable action buttons
+                    document.getElementById('copyBtn').disabled = false;
+                    document.getElementById('downloadZipBtn').disabled = false;
+
                 } else {
-                    status.innerText = "Generation failed.";
-                    output.innerHTML = `<pre style="color: red;">${data.detail}</pre>`;
+                    updateStep('step3', 'error', 'Validation failed');
+                    updateStep('step4', 'error', 'Build error');
+
+                    codeBanner.className = "mb-3 p-3 rounded-lg text-xs font-medium bg-rose-500/10 text-rose-400 border border-rose-500/20 flex flex-col gap-1";
+                    codeBanner.innerHTML = `<span>❌ <b>Validation Error:</b> The agent could not produce passing code.</span><span class="font-mono text-[11px] opacity-80">${data.detail || 'Unknown error'}</span>`;
+                    codeBanner.classList.remove('hidden');
+                    
+                    sandboxStatus.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span> Build Failed`;
                 }
+
             } catch (error) {
-                status.innerText = "Error connecting to the server.";
+                updateStep('step2', 'error', 'Connection error');
+                alert("Failed to connect to Render API backend. It might be waking up from sleep. Try again in 20 seconds!");
             } finally {
-                btn.disabled = false;
+                genBtn.disabled = false;
+            }
+        }
+
+        function renderFileTabs(files) {
+            const tabsContainer = document.getElementById('fileTabs');
+            tabsContainer.innerHTML = '';
+
+            const filenames = Object.keys(files);
+            document.getElementById('fileMeta').innerText = `${filenames.length} Files Generated`;
+
+            filenames.forEach((filename, index) => {
+                const btn = document.createElement('button');
+                btn.className = `px-3 py-1.5 text-xs font-medium rounded-lg flex items-center gap-2 transition-all shrink-0 ${index === 0 ? 'bg-indigo-600 text-white shadow-md' : 'bg-gray-800/60 text-gray-400 hover:text-gray-200 hover:bg-gray-800'}`;
+                
+                // Icon based on filename
+                let icon = 'file-code';
+                if (filename.includes('test')) icon = 'test-tube-2';
+                if (filename.includes('requirements')) icon = 'package';
+
+                btn.innerHTML = `<i data-lucide="${icon}" class="w-3.5 h-3.5"></i> ${filename}`;
+                btn.onclick = () => selectFile(filename, btn);
+                
+                tabsContainer.appendChild(btn);
+            });
+
+            lucide.createIcons();
+            if (filenames.length > 0) {
+                selectFile(filenames[0], tabsContainer.children[0]);
+            }
+        }
+
+        function selectFile(filename, tabBtn) {
+            activeFile = filename;
+            
+            // Update active tab styling
+            const allTabs = document.getElementById('fileTabs').children;
+            Array.from(allTabs).forEach(t => {
+                t.className = "px-3 py-1.5 text-xs font-medium rounded-lg flex items-center gap-2 transition-all shrink-0 bg-gray-800/60 text-gray-400 hover:text-gray-200 hover:bg-gray-800";
+            });
+            tabBtn.className = "px-3 py-1.5 text-xs font-medium rounded-lg flex items-center gap-2 transition-all shrink-0 bg-indigo-600 text-white shadow-md";
+
+            // Display Code
+            const codeViewer = document.getElementById('codeViewer');
+            codeViewer.textContent = generatedFiles[filename];
+            
+            // Re-trigger Highlight.js
+            delete codeViewer.dataset.highlighted;
+            hljs.highlightElement(codeViewer);
+        }
+
+        function copyCurrentFile() {
+            if (!activeFile || !generatedFiles[activeFile]) return;
+            navigator.clipboard.writeText(generatedFiles[activeFile]);
+            
+            const copyBtn = document.getElementById('copyBtn');
+            copyBtn.innerHTML = `<i data-lucide="check" class="w-4 h-4 text-emerald-400"></i> Copied!`;
+            lucide.createIcons();
+            setTimeout(() => {
+                copyBtn.innerHTML = `<i data-lucide="copy" class="w-4 h-4"></i> <span class="hidden sm:inline">Copy</span>`;
+                lucide.createIcons();
+            }, 2000);
+        }
+
+        async function downloadAsZip() {
+            if (!generatedFiles || Object.keys(generatedFiles).length === 0) return;
+
+            const zip = new JSZip();
+            for (const [filename, content] of Object.entries(generatedFiles)) {
+                zip.file(filename, content);
+            }
+
+            const blob = await zip.generateAsync({ type: "blob" });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = "forgepilot_project.zip";
+            link.click();
+        }
+
+        // Stepper Helpers
+        function resetSteps() {
+            ['step1', 'step2', 'step3', 'step4'].forEach(id => {
+                const el = document.getElementById(id);
+                el.className = "flex items-center gap-3 text-gray-500 text-xs";
+                el.children[0].className = "w-2 h-2 rounded-full bg-gray-600";
+            });
+        }
+
+        function updateStep(stepId, state, text) {
+            const el = document.getElementById(stepId);
+            if (!el) return;
+            
+            if (text) el.children[1].innerText = text;
+
+            if (state === 'active') {
+                el.className = "flex items-center gap-3 text-indigo-400 text-xs font-medium animate-pulse";
+                el.children[0].className = "w-2 h-2 rounded-full bg-indigo-400 animate-ping";
+            } else if (state === 'done') {
+                el.className = "flex items-center gap-3 text-emerald-400 text-xs";
+                el.children[0].className = "w-2 h-2 rounded-full bg-emerald-400";
+            } else if (state === 'error') {
+                el.className = "flex items-center gap-3 text-rose-400 text-xs";
+                el.children[0].className = "w-2 h-2 rounded-full bg-rose-400";
             }
         }
     </script>
